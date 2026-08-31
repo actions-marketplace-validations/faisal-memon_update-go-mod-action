@@ -1,23 +1,6 @@
 # update-go-mod-action
 
-`update-go-mod-action` is a standalone custom GitHub Action that checks the latest stable Go release from `go.dev` and updates the `go` directive in `go.mod` when a repository is behind.
-
-It is designed to stay small and composable:
-
-- this action decides whether `go.mod` needs a Go version bump and edits the file
-- a separate workflow step can create a pull request if a change was made
-
-## Inputs
-
-- `go-mod-path`: path to the `go.mod` file. Default: `go.mod`
-- `update-toolchain`: when `true`, also updates an existing `toolchain go...` line to match. Default: `false`
-
-## Outputs
-
-- `changed`: `true` when the action modified the target file
-- `previous-version`: the version originally declared by the `go` directive
-- `current-version`: the version declared after the action runs
-- `latest-version`: the latest stable Go version found from `go.dev`
+Simple action to keep `go.mod` up to date with the latest stable Go release from `go.dev`.
 
 ## Example
 
@@ -42,7 +25,7 @@ jobs:
 
       - name: Update go.mod
         id: update
-        uses: faisal-memon/update-go-mod-action@main
+        uses: faisal-memon/update-go-mod-action@v2
         with:
           update-toolchain: "true"
 
@@ -50,19 +33,24 @@ jobs:
         if: steps.update.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
-          commit-message: Update Go version to ${{ steps.update.outputs.latest-version }}
-          title: Update Go version to ${{ steps.update.outputs.latest-version }}
+          commit-message: Update Go version to ${{ steps.update.outputs.updated-version }}
+          title: Update Go version to ${{ steps.update.outputs.updated-version }}
           body: |
-            Updates the go.mod Go version to the latest stable release.
-          branch: chore/update-go-${{ steps.update.outputs.latest-version }}
+            go.mod Go version: `${{ steps.update.outputs.previous-version }}` -> `${{ steps.update.outputs.updated-version }}`.
+          branch: chore/update-go-${{ steps.update.outputs.updated-version }}
 ```
 
-## Suggested Release Model
+## Inputs
 
-After publishing the repository, create a stable major tag such as `v1` so other repositories can use:
+| Argument | Default | Explanation |
+| --- | --- | --- |
+|`go-mod-path`| `go.mod`| path to the `go.mod` file |
+|`update-toolchain`| `false` | When `true`, also updates an existing `toolchain go...` line to match |
 
-```yaml
-uses: faisal-memon/update-go-mod-action@v1
-```
+## Outputs
 
-You can move `v1` forward as you publish compatible updates.
+| Value | Explanation |
+| --- | --- |
+|`changed` | `true` when the action modified the target file |
+|`previous-version` | the version originally declared by the `go` directive when `changed` is `true` |
+|`updated-version` | the version written to the `go` directive when `changed` is `true`|
